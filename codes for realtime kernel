@@ -1,0 +1,52 @@
+
+curl -SLO https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.4.3.tar.xz
+curl -SLO https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.4.3.tar.sign
+
+curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/5.4/older/patch-5.4.3-rt1.patch.xz
+curl -SLO https://www.kernel.org/pub/linux/kernel/projects/rt/5.4/older/patch-5.4.3-rt1.patch.sign
+
+xz -d linux-5.4.3.tar.xz
+xz -d patch-5.4.3-rt1.patch.xz
+
+gpg2 --verify linux-5.4.3.tar.sign
+gpg2 --verify patch-5.4.3-rt1.patch.sign
+
+tar xf linux-5.4.3.tar
+cd linux-5.4.3
+patch -p1 < ../patch-5.4.3-rt1.patch
+
+make oldconfig
+
+make -j10
+sudo make modules_install -j10
+sudo make install -j10
+
+# Strip unneeded symbols of object files
+$ cd /lib/modules/5.4.5-rt3  # or your new kernel
+$ sudo find . -name *.ko -exec strip --strip-unneeded {} +
+
+# Change the compression format
+$ sudo vi /etc/initramfs-tools/initramfs.conf
+# Modify COMPRESS=lz4 to COMPRESS=xz (line 53)
+
+COMPRESS=xz 
+
+[:wq]
+
+sudo update-initramfs -u
+
+# Make sure that initrd.img-5.4.5-rt3, vmlinuz-5.4.5-rt3, and config-5.4.5-rt3 are generated in /boot
+$ cd /boot
+$ ls
+
+# Update grub
+$ sudo update-grub
+
+$ sudo reboot
+
+# After the reboot
+$ uname -a
+
+
+https://stackoverflow.com/questions/51669724/install-rt-linux-patch-for-ubuntu
+
